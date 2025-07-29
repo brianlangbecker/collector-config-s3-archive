@@ -30,32 +30,50 @@ This is a **simple, batteries-included** demo that shows how to send telemetry d
 ## Architecture
 
 ```
-┌─────────────────┐
-│   Applications  │
-│    (OTLP)       │
-└─────────┬───────┘
-          │
-          v
-┌─────────────────┐
-│ OpenTelemetry   │
-│   Collector     │
-└─────────┬───────┘
-          │
-    ┌─────┼─────┐
-    │     │     │
-    v     v     v
-┌───────┐ ┌───────┐ ┌─────────────┐
-│   S3  │ │Refinery│ │ Honeycomb   │
-│Archive│ │   →   │ │   Direct    │
-│       │ │Honeycomb│ │             │
-└───────┘ └───────┘ └─────────────┘
+┌─────────────────┐    ┌─────────────────┐
+│   Sample App    │    │   External      │
+│  (Python SDK)   │    │  Applications   │
+│                 │    │    (OTLP)       │
+└─────────┬───────┘    └─────────┬───────┘
+          │                      │
+          └──────────┬───────────┘
+                     │
+                     v
+          ┌─────────────────┐
+          │ OpenTelemetry   │
+          │   Collector     │
+          │                 │
+          │ OTLP Receivers  │
+          │ HTTP: 4318      │
+          │ GRPC: 4317      │
+          └─────────┬───────┘
+                    │
+            ┌───────┼───────┐
+            │       │       │
+            v       v       v
+    ┌───────────┐ ┌─────┐ ┌─────────────┐
+    │ Honeycomb │ │ S3  │ │FluentForward│
+    │  Direct   │ │ Bucket │   Receiver  │
+    │           │ │Archive│ │   (8006)    │
+    │ Metrics   │ │       │ │             │
+    │ Logs      │ │ All   │ │ Additional  │
+    │ Traces    │ │Signals│ │Log Sources  │
+    └───────────┘ └─────┘ └─────┬───────┘
+                                │
+                                v
+                        ┌───────────────┐
+                        │   Honeycomb   │
+                        │  (via batch   │
+                        │  processor)   │
+                        └───────────────┘
 ```
 
 ### Data Flow Summary
 
-1. **S3 Archive Path**: `OTLP → Processors → S3` (all signal types)
-2. **Refinery Path**: `OTLP → Processors → Refinery → Honeycomb` (traces/logs only)
-3. **Direct Path**: `OTLP → Processors → Honeycomb` (all signal types)
+1. **Direct Honeycomb Path**: `OTLP → Batch Processor → Honeycomb OTLP` (metrics, logs, traces)
+2. **S3 Archive Path**: `OTLP → Batch Processor → S3 Export` (all signals for compliance)
+3. **FluentBit Path**: `FluentForward → Batch Processor → Honeycomb` (additional log sources)
+4. **Debug Path**: `All Signals → Debug Exporter` (troubleshooting)
 
 ## Prerequisites
 

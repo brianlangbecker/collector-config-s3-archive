@@ -1,0 +1,12 @@
+# OpenTelemetry SDK and exporters
+opentelemetry-api==1.21.0
+opentelemetry-sdk==1.21.0
+
+# OTLP gRPC exporters
+opentelemetry-exporter-otlp-proto-grpc==1.21.0
+
+# Semantic conventions
+opentelemetry-semantic-conventions==0.42b0
+
+# Instrumentation (optional but useful)
+opentelemetry-instrumentation==0.42b0

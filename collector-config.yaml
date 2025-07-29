@@ -1,0 +1,243 @@
+# OpenTelemetry Collector Configuration
+# 
+# NOTE: S3 bulk storage and refinery pipelines are commented out below.
+# Uncomment them when ready to use those destinations.
+# Currently only direct Honeycomb export is enabled.
+
+
+
+extensions:
+  pprof:
+    endpoint: 0.0.0.0:1777
+  
+  # Debug logging extension
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+receivers:
+  # Fluent Bit receiver for log forwarding
+  fluentforward:
+    endpoint: 0.0.0.0:8006
+
+  otlp/main:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        include_metadata: true
+        keepalive:
+          server_parameters:
+            max_connection_age: 1m0s
+            max_connection_age_grace: 5m0s
+            max_connection_idle: 1m0s
+            time: 2h
+            timeout: 20s
+        max_recv_msg_size_mib: 4
+      http:
+        endpoint: 0.0.0.0:4318
+        include_metadata: true
+
+processors:
+  batch/main:
+    send_batch_max_size: 0
+    send_batch_size: 1
+    timeout: 1s
+
+  # Note: removeemptyvalues processor removed - not available in this collector version
+
+  transform/parse_timestamp:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(time, Time(body["ts"], "%Y-%m-%dT%H:%M:%S.%f%z", "")) where true
+
+  transform/cleanup_logs:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - delete_key(body, "ts") where true
+
+exporters:
+  # Debug exporter to see what data is flowing
+  debug:
+    verbosity: detailed
+
+  # S3 bulk storage exporter (commented out - uncomment when ready)
+  # awss3/bulk_storage:
+  #   s3uploader:
+  #     compression: gzip
+  #     file_prefix: null
+  #     region: us-west-2
+  #     s3_bucket: your-telemetry-archive-bucket
+  #     s3_partition_format: otel/%Y/%m/%d/%H
+  #     s3_prefix: null
+
+  # Refinery exporters (commented out - uncomment when ready)
+  # otlp/honeycomb_logs:
+  #   compression: gzip
+  #   endpoint: refinery-kibble.honeycomb.io:443
+  #   headers:
+  #     x-honeycomb-team: ${HONEYCOMB_API_KEY}
+  #   retry_on_failure:
+  #     enabled: true
+  #     initial_interval: 5s
+  #     max_elapsed_time: 300s
+  #     max_interval: 30s
+  #   sending_queue:
+  #     enabled: false
+  #   tls:
+  #     ca_file: ""
+  #     insecure: false
+  #     insecure_skip_verify: false
+
+  # otlp/honeycomb_traces:
+  #   compression: gzip
+  #   endpoint: refinery-kibble.honeycomb.io:443
+  #   headers:
+  #     x-honeycomb-team: ${HONEYCOMB_API_KEY}
+  #   retry_on_failure:
+  #     enabled: true
+  #     initial_interval: 5s
+  #     max_elapsed_time: 300s
+  #     max_interval: 30s
+  #   sending_queue:
+  #     enabled: false
+  #   tls:
+  #     ca_file: ""
+  #     insecure: false
+  #     insecure_skip_verify: false
+
+  # Direct Honeycomb exporters (active)
+  otlp/honeycomb_direct_logs:
+    compression: gzip
+    endpoint: api.honeycomb.io:443
+    headers:
+      x-honeycomb-team: ${HONEYCOMB_API_KEY}
+      x-honeycomb-dataset: "otel-logs"
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_elapsed_time: 300s
+      max_interval: 30s
+    sending_queue:
+      enabled: true
+    tls:
+      insecure: false
+
+  otlp/honeycomb_direct_metrics:
+    compression: gzip
+    endpoint: api.honeycomb.io:443
+    headers:
+      x-honeycomb-team: ${HONEYCOMB_API_KEY}
+      x-honeycomb-dataset: "otel-metrics"
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_elapsed_time: 300s
+      max_interval: 30s
+    sending_queue:
+      enabled: true
+    tls:
+      insecure: false
+
+  otlp/honeycomb_direct_traces:
+    compression: gzip
+    endpoint: api.honeycomb.io:443
+    headers:
+      x-honeycomb-team: ${HONEYCOMB_API_KEY}
+      x-honeycomb-dataset: "otel-traces"
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_elapsed_time: 300s
+      max_interval: 30s
+    sending_queue:
+      enabled: true
+    tls:
+      insecure: false
+
+service:
+  extensions: [pprof, zpages]
+  telemetry:
+    logs:
+      level: debug
+      development: true
+      encoding: console
+  pipelines:
+    # S3 archival pipelines (commented out - uncomment when ready)
+    # logs/bulk_storage:
+    #   receivers:
+    #     - otlp/main
+    #     - fluentforward
+    #   processors:
+    #     - transform/parse_timestamp
+    #     - transform/cleanup_logs
+    #     - batch/main
+    #   exporters:
+    #     - awss3/bulk_storage
+
+    # metrics/bulk_storage:
+    #   receivers:
+    #     - otlp/main
+    #   processors:
+    #     - batch/main
+    #   exporters:
+    #     - awss3/bulk_storage
+
+    # traces/bulk_storage:
+    #   receivers:
+    #     - otlp/main
+    #   processors:
+    #     - batch/main
+    #   exporters:
+    #     - awss3/bulk_storage
+
+    # Honeycomb via Refinery pipelines (commented out - uncomment when ready)
+    # logs/honeycomb:
+    #   receivers:
+    #     - otlp/main
+    #     - fluentforward
+    #   processors:
+    #     - transform/parse_timestamp
+    #     - transform/cleanup_logs
+    #     - batch/main
+    #   exporters:
+    #     - otlp/honeycomb_logs
+
+    # traces/honeycomb:
+    #   receivers:
+    #     - otlp/main
+    #   processors:
+    #     - batch/main
+    #   exporters:
+    #     - otlp/honeycomb_traces
+
+    # Direct to Honeycomb pipelines (active)
+    logs/honeycomb_direct:
+      receivers:
+        - otlp/main
+        - fluentforward
+      processors:
+        - batch/main
+      exporters:
+        - debug
+        - otlp/honeycomb_direct_logs
+
+    metrics/honeycomb_direct:
+      receivers:
+        - otlp/main
+      processors:
+        - batch/main
+      exporters:
+        - debug
+        - otlp/honeycomb_direct_metrics
+
+    traces/honeycomb_direct:
+      receivers:
+        - otlp/main
+      processors:
+        - batch/main
+      exporters:
+        - debug
+        - otlp/honeycomb_direct_traces

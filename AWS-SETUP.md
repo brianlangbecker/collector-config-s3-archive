@@ -1,13 +1,103 @@
 # AWS Setup Guide for OpenTelemetry Collector Demo
 
-This guide shows you how to set up AWS credentials for the OpenTelemetry Collector S3 archival feature.
+This guide shows you how to set up AWS S3 bucket and credentials for the OpenTelemetry Collector S3 archival feature.
 
 ## Table of Contents
 
+- [S3 Bucket Setup](#s3-bucket-setup)
 - [Quick Setup (Testing/Demo)](#quick-setup-testingdemo)
 - [Production Setup (IAM Roles)](#production-setup-iam-roles)
 - [AWS CLI Setup](#aws-cli-setup)
 - [Troubleshooting](#troubleshooting)
+
+---
+
+## S3 Bucket Setup
+
+First, you need to create an S3 bucket to store your telemetry data archives.
+
+### Step 1: Create S3 Bucket
+
+1. **Go to AWS Console → S3**
+2. **Click "Create bucket"**
+3. **Configure bucket settings:**
+
+**Basic Configuration:**
+- **Bucket name:** `your-company-telemetry-archive` (must be globally unique)
+- **AWS Region:** Choose region closest to your collector (e.g., `us-west-2`)
+
+**Object Ownership:**
+- **For Secret Keys/IAM Users:** ACLs disabled (Bucket owner enforced) ✅
+- **For IAM Roles:** ACLs disabled (Bucket owner enforced) ✅
+- **Note:** Both authentication methods work with ACLs disabled
+
+**Block Public Access:**
+- ✅ **Block all public access** (recommended for security)
+- ✅ Check all four options:
+  - Block public access to buckets and objects granted through new access control lists
+  - Block public access to buckets and objects granted through any access control lists  
+  - Block public access to buckets and objects granted through new public bucket or access point policies
+  - Block public access to buckets and objects granted through any public bucket or access point policies
+
+**Bucket Versioning:**
+- **Recommended:** Enable versioning for data protection
+- This allows recovery of accidentally overwritten telemetry files
+
+**Server-side Encryption:**
+- **Recommended:** Server-side encryption with Amazon S3 managed keys (SSE-S3)
+- **Bucket Key:** Enable (reduces costs)
+
+### Step 2: Configure Lifecycle Management (Optional but Recommended)
+
+To manage storage costs for long-term telemetry data:
+
+4. **After bucket creation, go to bucket → Management tab**
+5. **Click "Create lifecycle rule"**
+6. **Lifecycle rule configuration:**
+   - **Rule name:** `telemetry-archive-lifecycle`
+   - **Status:** Enabled
+   - **Rule scope:** Apply to all objects
+   
+7. **Lifecycle rule actions:**
+   - **Transition current versions:** After 30 days → Standard-IA
+   - **Transition current versions:** After 90 days → Glacier Flexible Retrieval
+   - **Transition current versions:** After 365 days → Glacier Deep Archive
+   - **Delete incomplete multipart uploads:** After 7 days
+
+### Step 3: Collector Authentication Methods
+
+The OpenTelemetry Collector can access S3 using either method:
+
+**Option A: Secret Keys (Testing/Development)**
+- Uses AWS Access Key ID + Secret Access Key
+- Configured in `.env` file or environment variables
+- Collector authenticates as IAM user
+
+**Option B: IAM Roles (Production)**  
+- Uses IAM roles attached to EC2/EKS/ECS instances
+- No credentials in config files (more secure)
+- Collector inherits permissions from instance role
+
+**Both methods work with the S3 bucket settings above.** The key requirements:
+- ✅ Collector needs `s3:PutObject` permission on the bucket
+- ✅ Collector needs `s3:PutObjectAcl` permission (if ACLs enabled)
+- ✅ Regional access (collector and bucket in same region = faster uploads)
+
+### Step 4: Update Environment Variables
+
+Update your `.env` file with the bucket name:
+```bash
+# Replace with your actual bucket name
+S3_BUCKET_NAME=your-company-telemetry-archive
+AWS_DEFAULT_REGION=us-west-2  # Match your bucket region
+
+# For Secret Key method (development/testing):
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+
+# For IAM Role method (production):
+# No AWS credentials needed - remove AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+```
 
 ---
 

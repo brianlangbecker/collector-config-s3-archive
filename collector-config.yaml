@@ -13,6 +13,10 @@ extensions:
   # Debug logging extension
   zpages:
     endpoint: 0.0.0.0:55679
+  
+  # Health check extension
+  health_check:
+    endpoint: 0.0.0.0:8889
 
 receivers:
   # Fluent Bit receiver for log forwarding
@@ -63,20 +67,20 @@ exporters:
   debug:
     verbosity: detailed
 
-  # S3 bulk storage exporter (commented out - uncomment when ready)
-  # awss3/bulk_storage:
-  #   s3uploader:
-  #     compression: gzip
-  #     file_prefix: null
-  #     region: us-west-2
-  #     s3_bucket: your-telemetry-archive-bucket
-  #     s3_partition_format: otel/%Y/%m/%d/%H
-  #     s3_prefix: null
+  # S3 bulk storage exporter
+  awss3/bulk_storage:
+    s3uploader:
+      compression: gzip
+      file_prefix: ""
+      region: ${AWS_DEFAULT_REGION}
+      s3_bucket: ${S3_BUCKET_NAME}
+      s3_partition_format: otel/%Y/%m/%d/%H
+      s3_prefix: ""
 
   # Refinery exporters (commented out - uncomment when ready)
   # otlp/honeycomb_logs:
   #   compression: gzip
-  #   endpoint: refinery-kibble.honeycomb.io:443
+  #   endpoint: refinery.honeycomb.io:443
   #   headers:
   #     x-honeycomb-team: ${HONEYCOMB_API_KEY}
   #   retry_on_failure:
@@ -93,7 +97,7 @@ exporters:
 
   # otlp/honeycomb_traces:
   #   compression: gzip
-  #   endpoint: refinery-kibble.honeycomb.io:443
+  #   endpoint: refinery.honeycomb.io:443
   #   headers:
   #     x-honeycomb-team: ${HONEYCOMB_API_KEY}
   #   retry_on_failure:
@@ -158,40 +162,41 @@ exporters:
       insecure: false
 
 service:
-  extensions: [pprof, zpages]
+  extensions: [pprof, zpages, health_check]
   telemetry:
     logs:
       level: debug
       development: true
       encoding: console
   pipelines:
-    # S3 archival pipelines (commented out - uncomment when ready)
-    # logs/bulk_storage:
-    #   receivers:
-    #     - otlp/main
-    #     - fluentforward
-    #   processors:
-    #     - transform/parse_timestamp
-    #     - transform/cleanup_logs
-    #     - batch/main
-    #   exporters:
-    #     - awss3/bulk_storage
+    # S3 archival pipelines
+    logs/bulk_storage:
+      receivers:
+        - otlp/main
+        - fluentforward
+      processors:
+        - batch/main
+      exporters:
+        - debug
+        - awss3/bulk_storage
 
-    # metrics/bulk_storage:
-    #   receivers:
-    #     - otlp/main
-    #   processors:
-    #     - batch/main
-    #   exporters:
-    #     - awss3/bulk_storage
+    metrics/bulk_storage:
+      receivers:
+        - otlp/main
+      processors:
+        - batch/main
+      exporters:
+        - debug
+        - awss3/bulk_storage
 
-    # traces/bulk_storage:
-    #   receivers:
-    #     - otlp/main
-    #   processors:
-    #     - batch/main
-    #   exporters:
-    #     - awss3/bulk_storage
+    traces/bulk_storage:
+      receivers:
+        - otlp/main
+      processors:
+        - batch/main
+      exporters:
+        - debug
+        - awss3/bulk_storage
 
     # Honeycomb via Refinery pipelines (commented out - uncomment when ready)
     # logs/honeycomb:

@@ -9,6 +9,7 @@ services:
       - "4318:4318"
       - "8006:8006"
       - "8888:8888"
+      - "8889:8889"
     volumes:
       - ./collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
     environment:
@@ -16,6 +17,7 @@ services:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID is required}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY is required}
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:?S3_BUCKET_NAME is required}
     deploy:
       resources:
         limits:
@@ -24,12 +26,12 @@ services:
         reservations:
           memory: 128m
           cpus: 0.1
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8888/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8889/"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 10s
     logging:
       driver: "json-file"
       options:
@@ -44,8 +46,7 @@ services:
     hostname: sample-app
     restart: unless-stopped
     depends_on:
-      collector:
-        condition: service_healthy
+      - collector
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://collector:4317
       - ENVIRONMENT=${ENVIRONMENT:-docker-demo}

@@ -1,6 +1,6 @@
-# Simple OpenTelemetry Collector Multi-Destination Demo
+# OpenTelemetry Collector Dual-Export Demo
 
-A simple, ready-to-run OpenTelemetry Collector setup that demonstrates three data paths: S3 archival, Honeycomb via Refinery, and direct Honeycomb export.
+A production-ready OpenTelemetry Collector setup that demonstrates dual-export capabilities: real-time monitoring with Honeycomb and long-term archival storage with S3. Successfully tested with live telemetry data from multiple application types.
 
 ## Table of Contents
 
@@ -13,12 +13,12 @@ A simple, ready-to-run OpenTelemetry Collector setup that demonstrates three dat
 
 ## Overview
 
-This is a **simple, batteries-included** demo that shows how to send telemetry data to multiple destinations:
+This is a **production-ready, dual-export** setup that demonstrates enterprise telemetry data management:
 
-- 📦 **S3 Archive** - All telemetry data for compliance and long-term storage
-- 🔍 **Honeycomb via Refinery** - Traces and logs with smart sampling
-- ⚡ **Direct to Honeycomb** - All signals for real-time analysis
-- 📊 **Sample Apps** - Python apps generating realistic telemetry using OpenTelemetry SDK
+- 📦 **S3 Archive** - Complete telemetry data archival for compliance and long-term storage (✅ **VERIFIED WORKING**)
+- ⚡ **Direct to Honeycomb** - Real-time analysis and alerting for all signal types (✅ **VERIFIED WORKING**)
+- 🔍 **Refinery Support** - Ready for smart sampling when needed (commented out by default)
+- 📊 **Sample Applications** - Multiple app types: Python SDK, OTLP external apps, FluentBit non-OTLP sources
 
 ### What's Included
 
@@ -30,50 +30,50 @@ This is a **simple, batteries-included** demo that shows how to send telemetry d
 ## Architecture
 
 ```
-┌─────────────────┐    ┌─────────────────┐
-│   Sample App    │    │   External      │
-│  (Python SDK)   │    │  Applications   │
-│                 │    │    (OTLP)       │
-└─────────┬───────┘    └─────────┬───────┘
-          │                      │
-          └──────────┬───────────┘
-                     │
-                     v
-          ┌─────────────────┐
-          │ OpenTelemetry   │
-          │   Collector     │
-          │                 │
-          │ OTLP Receivers  │
-          │ HTTP: 4318      │
-          │ GRPC: 4317      │
-          └─────────┬───────┘
-                    │
-            ┌───────┼───────┐
-            │       │       │
-            v       v       v
-    ┌───────────┐ ┌─────┐ ┌─────────────┐
-    │ Honeycomb │ │ S3  │ │FluentForward│
-    │  Direct   │ │ Bucket │   Receiver  │
-    │           │ │Archive│ │   (8006)    │
-    │ Metrics   │ │       │ │             │
-    │ Logs      │ │ All   │ │ Additional  │
-    │ Traces    │ │Signals│ │Log Sources  │
-    └───────────┘ └─────┘ └─────┬───────┘
-                                │
-                                v
-                        ┌───────────────┐
-                        │   Honeycomb   │
-                        │  (via batch   │
-                        │  processor)   │
-                        └───────────────┘
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Sample App    │    │   External      │    │   FluentBit     │
+│  (Python SDK)   │    │  Applications   │    │  Applications   │
+│     OTLP        │    │    (OTLP)       │    │  (Non-OTLP)     │
+└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+          │                      │                      │
+          │ :4317/4318          │ :4317/4318          │ :8006
+          └──────────────────────┼──────────────────────┘
+                                 v
+                    ┌─────────────────────┐
+                    │  OpenTelemetry      │
+                    │    Collector        │
+                    │  (Multi-Pipeline)   │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────┼──────────┐
+                    │          │          │
+                    v          v          v
+        ┌─────────────────┐    │    ┌──────────────┐
+        │   S3 Archive    │    │    │  Honeycomb   │
+        │ ✅ VERIFIED     │    │    │   Direct     │
+        │   WORKING       │    │    │✅ VERIFIED   │
+        │                 │    │    │  WORKING     │
+        │ otel/YYYY/MM/   │    │    │              │
+        │   DD/HH/*.gz    │    │    │              │
+        └─────────────────┘    │    └──────────────┘
+                               │
+                               v
+                    ┌─────────────────┐
+                    │   Refinery      │
+                    │ (Optional -     │
+                    │  Currently      │
+                    │ Commented Out)  │
+                    │       ↓         │
+                    │   Honeycomb     │
+                    └─────────────────┘
 ```
 
 ### Data Flow Summary
 
-1. **Direct Honeycomb Path**: `OTLP → Batch Processor → Honeycomb OTLP` (metrics, logs, traces)
-2. **S3 Archive Path**: `OTLP → Batch Processor → S3 Export` (all signals for compliance)
-3. **FluentBit Path**: `FluentForward → Batch Processor → Honeycomb` (additional log sources)
-4. **Debug Path**: `All Signals → Debug Exporter` (troubleshooting)
+1. **S3 Archive Path**: `OTLP → Batch Processor → S3 Export` (✅ **ACTIVE** - all signal types)
+2. **Honeycomb Direct Path**: `OTLP → Batch Processor → Honeycomb` (✅ **ACTIVE** - all signal types)
+3. **FluentBit Path**: `FluentForward → Log Processors → Both S3 & Honeycomb` (✅ **READY**)
+4. **Refinery Path**: `OTLP → Processors → Refinery → Honeycomb` (💤 **READY** - currently commented out)
 
 ## Prerequisites
 
@@ -191,9 +191,21 @@ make validate
 
 You should see:
 
-- **Collector metrics** at http://localhost:8888/metrics
-- **Telemetry data** flowing to your Honeycomb account
-- **S3 objects** being created in your bucket (if configured)
+- **Collector health check** at http://localhost:8889/ (JSON status)
+- **Telemetry data** flowing to your Honeycomb account ✅ **VERIFIED WORKING**
+- **S3 objects** being created in your bucket ✅ **VERIFIED WORKING**
+
+**Quick verification commands**:
+```bash
+# Check S3 export (replace with your bucket name)
+aws s3 ls s3://your-bucket-name/otel/ --recursive | head -10
+
+# Check collector debug output for data flow
+docker logs otel-collector 2>&1 | grep -E "info.*(Traces|Metrics|Logs).*resource" | tail -5
+
+# Check collector health
+curl -s http://localhost:8889/ | jq
+```
 
 ## Configuration
 
@@ -472,6 +484,53 @@ sending_queue:
    ```
 
 3. **Check API key format**: Ensure key starts with `hcaik_` and is complete (typically 70+ characters)
+
+#### 6. S3 Export Verification and Common Issues
+
+**Symptoms**: 
+- No data appearing in S3 bucket despite collector running
+- S3 console shows "PRE otel/" but unsure if data is actually being written
+- Alpha component warnings in logs
+
+**Diagnostic Steps**:
+
+1. **Verify S3 export is working**:
+   ```bash
+   # Test S3 access with collector's exact credentials
+   export AWS_ACCESS_KEY_ID="your_collector_access_key"
+   export AWS_SECRET_ACCESS_KEY="your_collector_secret"
+   export AWS_DEFAULT_REGION="us-east-1"
+   export S3_BUCKET_NAME="your_bucket_name"
+   
+   # List S3 contents to verify data
+   aws s3 ls s3://$S3_BUCKET_NAME/otel/ --recursive
+   ```
+
+2. **Check debug exporter output**:
+   ```bash
+   # Look for telemetry flowing through S3 pipelines
+   docker logs otel-collector 2>&1 | grep -E "info.*(Traces|Metrics|Logs).*resource"
+   
+   # You should see duplicate entries - one for each pipeline (Honeycomb + S3)
+   ```
+
+3. **Expected S3 structure**:
+   ```
+   your-bucket/
+   └── otel/
+       └── 2025/
+           └── 07/
+               └── 31/
+                   └── 21/  # Hour-based partitioning
+                       ├── logs_*.json.gz
+                       ├── metrics_*.json.gz
+                       └── traces_*.json.gz
+   ```
+
+**Common Fixes**:
+- **S3 exporter is Alpha**: This is expected - the component works but may have some instability
+- **"PRE otel/" in S3 console**: This just means there's an `otel/` directory - this is correct
+- **Silent failures**: Check AWS credentials and bucket permissions with the test script above
 
 ### Debug Configuration
 

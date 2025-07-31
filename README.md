@@ -53,8 +53,9 @@ This is a **production-ready, dual-export** setup that demonstrates enterprise t
         │ ✅ VERIFIED     │    │    │   Direct     │
         │   WORKING       │    │    │✅ VERIFIED   │
         │                 │    │    │  WORKING     │
-        │ otel/YYYY/MM/   │    │    │              │
-        │   DD/HH/*.gz    │    │    │              │
+        │ otel/year=YYYY/ │    │    │              │
+        │ month=MM/day=DD/│    │    │              │
+        │ hour=HH/min=MM/ │    │    │              │
         └─────────────────┘    │    └──────────────┘
                                │
                                v
@@ -289,13 +290,14 @@ The configuration defines 8 pipelines across 3 data paths:
 ```
 your-bucket/
 ├── otel/
-│   ├── 2024/
-│   │   ├── 01/
-│   │   │   ├── 15/
-│   │   │   │   ├── 14/  # Hour-based partitioning
-│   │   │   │   │   ├── logs.json.gz
-│   │   │   │   │   ├── metrics.json.gz
-│   │   │   │   │   └── traces.json.gz
+│   ├── year=2024/
+│   │   ├── month=01/
+│   │   │   ├── day=15/
+│   │   │   │   ├── hour=14/
+│   │   │   │   │   ├── minute=30/  # Minute-based partitioning
+│   │   │   │   │   │   ├── logs_*.json.gz
+│   │   │   │   │   │   ├── metrics_*.json.gz
+│   │   │   │   │   │   └── traces_*.json.gz
 ```
 
 ## Monitoring
@@ -518,13 +520,14 @@ sending_queue:
    ```
    your-bucket/
    └── otel/
-       └── 2025/
-           └── 07/
-               └── 31/
-                   └── 21/  # Hour-based partitioning
-                       ├── logs_*.json.gz
-                       ├── metrics_*.json.gz
-                       └── traces_*.json.gz
+       └── year=2025/
+           └── month=07/
+               └── day=31/
+                   └── hour=21/
+                       └── minute=30/  # Minute-based partitioning
+                           ├── logs_*.json.gz
+                           ├── metrics_*.json.gz
+                           └── traces_*.json.gz
    ```
 
 **Common Fixes**:

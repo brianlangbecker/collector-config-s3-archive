@@ -74,7 +74,7 @@ exporters:
       file_prefix: ""
       region: ${AWS_DEFAULT_REGION}
       s3_bucket: ${S3_BUCKET_NAME}
-      s3_partition_format: otel/%Y/%m/%d/%H
+      s3_partition_format: otel/year=%Y/month=%m/day=%d/hour=%H/minute=%M
       s3_prefix: ""
 
   # Refinery exporters (commented out - uncomment when ready)

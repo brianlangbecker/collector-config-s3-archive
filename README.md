@@ -54,8 +54,13 @@ This is a **production-ready, dual-export** setup that demonstrates enterprise t
         │   WORKING       │    │    │✅ VERIFIED   │
         │                 │    │    │  WORKING     │
         │ otel/year=YYYY/ │    │    │              │
-        │ month=MM/day=DD/│    │    │              │
-        │ hour=HH/min=MM/ │    │    │              │
+        │ month=MM/day=DD/│    │    │ Enhanced:    │
+        │ hour=HH/min=MM/ │    │    │ • Queuing    │
+        │                 │    │    │ • Retries    │
+        │ Enhanced:       │    │    │ • Dataset    │
+        │ • Proto marshal │    │    │   routing    │
+        │ • Queuing       │    │    │ • Auto-named │
+        │ • Batch tuning  │    │    │   services   │
         └─────────────────┘    │    └──────────────┘
                                │
                                v
@@ -71,8 +76,8 @@ This is a **production-ready, dual-export** setup that demonstrates enterprise t
 
 ### Data Flow Summary
 
-1. **S3 Archive Path**: `OTLP → Batch Processor → S3 Export` (✅ **ACTIVE** - all signal types)
-2. **Honeycomb Direct Path**: `OTLP → Batch Processor → Honeycomb` (✅ **ACTIVE** - all signal types)
+1. **S3 Archive Path**: `OTLP → Batch Processor → S3 Export` (✅ **ACTIVE** - all signal types, enhanced with Proto marshaling, queuing, and batch tuning)
+2. **Honeycomb Direct Path**: `OTLP → Batch Processor → Honeycomb` (✅ **ACTIVE** - all signal types with dedicated datasets for logs/metrics, auto-named services for traces)
 3. **FluentBit Path**: `FluentForward → Log Processors → Both S3 & Honeycomb` (✅ **READY**)
 4. **Refinery Path**: `OTLP → Processors → Refinery → Honeycomb` (💤 **READY** - currently commented out)
 

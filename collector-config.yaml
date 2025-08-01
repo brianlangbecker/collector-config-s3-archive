@@ -76,6 +76,17 @@ exporters:
       s3_bucket: ${S3_BUCKET_NAME}
       s3_partition_format: year=%Y/month=%m/day=%d/hour=%H/minute=%M
       s3_prefix: "otel"
+    marshaler: 'otlp_proto'
+    sending_queue:
+      batch:
+        flush_timeout: 30s
+        max_size: 50000
+        min_size: 50000
+      enabled: true
+      queue_size: 500000
+      sizer: items
+    timeout: 30s
+
 
   # Refinery exporters (commented out - uncomment when ready)
   # otlp/honeycomb_logs:

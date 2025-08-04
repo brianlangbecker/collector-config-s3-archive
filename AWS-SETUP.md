@@ -23,27 +23,32 @@ First, you need to create an S3 bucket to store your telemetry data archives.
 3. **Configure bucket settings:**
 
 **Basic Configuration:**
+
 - **Bucket name:** `your-company-telemetry-archive` (must be globally unique)
 - **AWS Region:** Choose region closest to your collector (e.g., `us-west-2`)
 
 **Object Ownership:**
+
 - **For Secret Keys/IAM Users:** ACLs disabled (Bucket owner enforced) ✅
 - **For IAM Roles:** ACLs disabled (Bucket owner enforced) ✅
 - **Note:** Both authentication methods work with ACLs disabled
 
 **Block Public Access:**
+
 - ✅ **Block all public access** (recommended for security)
 - ✅ Check all four options:
   - Block public access to buckets and objects granted through new access control lists
-  - Block public access to buckets and objects granted through any access control lists  
+  - Block public access to buckets and objects granted through any access control lists
   - Block public access to buckets and objects granted through new public bucket or access point policies
   - Block public access to buckets and objects granted through any public bucket or access point policies
 
 **Bucket Versioning:**
+
 - **Recommended:** Enable versioning for data protection
 - This allows recovery of accidentally overwritten telemetry files
 
 **Server-side Encryption:**
+
 - **Recommended:** Server-side encryption with Amazon S3 managed keys (SSE-S3)
 - **Bucket Key:** Enable (reduces costs)
 
@@ -57,7 +62,6 @@ To manage storage costs for long-term telemetry data:
    - **Rule name:** `telemetry-archive-lifecycle`
    - **Status:** Enabled
    - **Rule scope:** Apply to all objects
-   
 7. **Lifecycle rule actions:**
    - **Transition current versions:** After 30 days → Standard-IA
    - **Transition current versions:** After 90 days → Glacier Flexible Retrieval
@@ -69,23 +73,28 @@ To manage storage costs for long-term telemetry data:
 The OpenTelemetry Collector can access S3 using either method:
 
 **Option A: Secret Keys (Testing/Development)**
+
 - Uses AWS Access Key ID + Secret Access Key
 - Configured in `.env` file or environment variables
 - Collector authenticates as IAM user
 
-**Option B: IAM Roles (Production)**  
+**Option B: IAM Roles (Production)**
+
 - Uses IAM roles attached to EC2/EKS/ECS instances
 - No credentials in config files (more secure)
 - Collector inherits permissions from instance role
 
 **Both methods work with the S3 bucket settings above.** The key requirements:
+
 - ✅ Collector needs `s3:PutObject` permission on the bucket
 - ✅ Collector needs `s3:PutObjectAcl` permission (if ACLs enabled)
+- ✅ Collector needs `s3:PutObjectDestination`
 - ✅ Regional access (collector and bucket in same region = faster uploads)
 
 ### Step 4: Update Environment Variables
 
 Update your `.env` file with the bucket name:
+
 ```bash
 # Replace with your actual bucket name
 S3_BUCKET_NAME=your-company-telemetry-archive
@@ -127,11 +136,6 @@ Use this approach for local testing and demos. It uses IAM user access keys.
             "Action": [
                 "s3:PutObject",
                 "s3:PutObjectAcl",
-                "s3:ListBucket",
-                "s3:GetObject",
-                "s3:GetObjectAttributes",
-                "s3:GetObjectVersion",
-                "s3:PutObject",
                 "s3:PutObjectRetention"
             ],
                 "arn:aws:s3:::your-telemetry-bucket",
@@ -208,7 +212,7 @@ Use this approach for production deployments. No access keys needed!
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": ["s3:PutObject", "s3:PutObjectAcl", "s3:ListBucket", "s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectVersion", "s3:PutObject","s3:PutObjectRetention"
+      "Action": ["s3:PutObject", "s3:PutObjectAcl","s3:PutObjectRetention"
 "],
       "arn:aws:s3:::your-telemetry-bucket",
       "arn:aws:s3:::your-telemetry-bucket/*"

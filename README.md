@@ -104,20 +104,28 @@ Create an IAM policy with S3 write permissions:
             "Effect": "Allow",
             "Action": [
                 "s3:PutObject",
-                "s3:PutObjectAcl"
+                "s3:PutObjectAcl",
+                "s3:PutObjectRetention"
             ],
-            "Resource": "arn:aws:s3:::your-telemetry-archive-bucket/*"
+            "Resource": [
+                "arn:aws:s3:::your-telemetry-bucket",
+                "arn:aws:s3:::your-telemetry-bucket/*"
+            ]
         }
     ]
 }
 ```
 
+> **📋 For detailed AWS setup instructions**, including S3 bucket creation, IAM role configuration, and troubleshooting, see [AWS-SETUP.md](./AWS-SETUP.md).
+
 **For Testing/Demo:**
+
 - Attach this policy to an IAM user
 - Create access keys for the user
 - Use the access keys in your `.env` file
 
 **For Production:**
+
 - Attach this policy to an IAM role
 - Assign the role to your compute resources (EC2, EKS, ECS)
 - Remove AWS credentials from environment variables
@@ -127,16 +135,19 @@ Create an IAM policy with S3 write permissions:
 ### 1. Get Your API Keys
 
 You need:
-- **Honeycomb API key** (from https://ui.honeycomb.io/account)  
-- **AWS credentials** with S3 write access
+
+- **Honeycomb API key** (from https://ui.honeycomb.io/account)
+- **AWS credentials** with S3 write access (see [AWS-SETUP.md](./AWS-SETUP.md) for detailed setup)
 
 #### AWS Credentials Options
 
 **For Testing/Demo (Easy):**
+
 - Use AWS access keys from IAM user with S3 permissions
 - Get them from AWS Console → IAM → Users → Security credentials
 
 **For Production (Recommended):**
+
 - Use IAM roles attached to your compute resources (EC2, EKS, ECS)
 - No credential management needed - automatic authentication
 
@@ -155,6 +166,7 @@ nano .env
 Update the required values in `.env`:
 
 **For Testing/Demo:**
+
 ```bash
 HONEYCOMB_API_KEY=your_actual_honeycomb_api_key_here
 AWS_ACCESS_KEY_ID=your_aws_access_key_id
@@ -162,6 +174,7 @@ AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
 ```
 
 **For Production (using IAM roles):**
+
 ```bash
 HONEYCOMB_API_KEY=your_actual_honeycomb_api_key_here
 # Remove AWS credentials - IAM role will provide them automatically
@@ -204,6 +217,7 @@ You should see:
 - **S3 objects** being created in your bucket ✅ **VERIFIED WORKING**
 
 **Quick verification commands**:
+
 ```bash
 # Check S3 export (replace with your bucket name)
 aws s3 ls s3://your-bucket-name/otel/ --recursive | head -10
@@ -219,12 +233,12 @@ curl -s http://localhost:8889/ | jq
 
 ### Environment Variables
 
-| Variable                | Required | Description                   | Example                |
-| ----------------------- | -------- | ----------------------------- | ---------------------- |
-| `HONEYCOMB_API_KEY`     | Yes      | Honeycomb team API key        | `abc123...`            |
+| Variable                | Required | Description                   | Example               |
+| ----------------------- | -------- | ----------------------------- | --------------------- |
+| `HONEYCOMB_API_KEY`     | Yes      | Honeycomb team API key        | `abc123...`           |
 | `AWS_ACCESS_KEY_ID`     | Yes      | AWS access key for S3         | `your_aws_access_key` |
-| `AWS_SECRET_ACCESS_KEY` | Yes      | AWS secret key for S3         | `wJalrXUtnFEMI/...`    |
-| `AWS_REGION`            | No       | AWS region (if not in config) | `us-west-2`            |
+| `AWS_SECRET_ACCESS_KEY` | Yes      | AWS secret key for S3         | `wJalrXUtnFEMI/...`   |
+| `AWS_REGION`            | No       | AWS region (if not in config) | `us-west-2`           |
 
 ### Key Configuration Sections
 
@@ -457,7 +471,8 @@ sending_queue:
 
 #### 5. API Key Authentication Errors
 
-**Symptoms**: 
+**Symptoms**:
+
 - Collector logs show: `attempted to use disabled API key`
 - Collector logs show: `unknown API key - check your credentials, region, and API URL`
 - HTTP 200 responses from test scripts but no data in Honeycomb dashboard
@@ -467,22 +482,24 @@ sending_queue:
 **Solutions**:
 
 1. **Full container recreation** (recommended):
+
    ```bash
    # Stop and remove containers
    docker-compose down
-   
+
    # Clean up cached containers and images
    docker system prune -f
-   
+
    # Restart with fresh environment
    docker-compose up -d
    ```
 
 2. **Verify API key is working**:
+
    ```bash
    # Test direct API access
    curl -H "X-Honeycomb-Team: YOUR_API_KEY" https://api.honeycomb.io/1/auth
-   
+
    # Test direct OTLP endpoint
    curl -X POST \
      -H "Content-Type: application/json" \
@@ -496,7 +513,8 @@ sending_queue:
 
 #### 6. S3 Export Verification and Common Issues
 
-**Symptoms**: 
+**Symptoms**:
+
 - No data appearing in S3 bucket despite collector running
 - S3 console shows "PRE otel/" but unsure if data is actually being written
 - Alpha component warnings in logs
@@ -504,22 +522,24 @@ sending_queue:
 **Diagnostic Steps**:
 
 1. **Verify S3 export is working**:
+
    ```bash
    # Test S3 access with collector's exact credentials
    export AWS_ACCESS_KEY_ID="your_collector_access_key"
    export AWS_SECRET_ACCESS_KEY="your_collector_secret"
    export AWS_DEFAULT_REGION="us-east-1"
    export S3_BUCKET_NAME="your_bucket_name"
-   
+
    # List S3 contents to verify data
    aws s3 ls s3://$S3_BUCKET_NAME/otel/ --recursive
    ```
 
 2. **Check debug exporter output**:
+
    ```bash
    # Look for telemetry flowing through S3 pipelines
    docker logs otel-collector 2>&1 | grep -E "info.*(Traces|Metrics|Logs).*resource"
-   
+
    # You should see duplicate entries - one for each pipeline (Honeycomb + S3)
    ```
 
@@ -538,6 +558,7 @@ sending_queue:
    ```
 
 **Common Fixes**:
+
 - **S3 exporter is Alpha**: This is expected - the component works but may have some instability
 - **"PRE otel/" in S3 console**: This just means there's an `otel/` directory - this is correct
 - **Silent failures**: Check AWS credentials and bucket permissions with the test script above
@@ -675,6 +696,7 @@ This demo shows the **basics**. For production:
 ### Production Deployment Examples
 
 **On EKS (Kubernetes):**
+
 ```yaml
 # Use IAM Roles for Service Accounts (IRSA)
 apiVersion: v1
@@ -685,6 +707,7 @@ metadata:
 ```
 
 **On EC2:**
+
 ```bash
 # Attach IAM role to EC2 instance, remove AWS credentials from environment
 export HONEYCOMB_API_KEY=your_key
@@ -693,6 +716,7 @@ docker-compose up -d
 ```
 
 **On ECS:**
+
 ```json
 {
   "taskRoleArn": "arn:aws:iam::ACCOUNT:role/otel-collector-task-role",

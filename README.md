@@ -2,6 +2,8 @@
 
 A production-ready OpenTelemetry Collector setup that demonstrates dual-export capabilities: real-time monitoring with Honeycomb and long-term archival storage with S3. Successfully tested with live telemetry data from multiple application types.
 
+> **📚 Additional Setup**: Once your S3 archival is configured and working, consider enhancing your telemetry pipeline with Honeycomb's advanced features. See the [Honeycomb Telemetry Pipeline Enhancement Guide](https://docs.honeycomb.io/send-data/telemetry-pipeline/enhance/) for sampling strategies, data transformation, and optimization techniques.
+
 ## Table of Contents
 
 - [Overview](#overview)

@@ -2,6 +2,8 @@
 
 A production-ready OpenTelemetry Collector setup that demonstrates dual-export capabilities: real-time monitoring with Honeycomb and long-term archival storage with S3. Successfully tested with live telemetry data from multiple application types.
 
+**Ideal for environments without Kubernetes clusters where Honeycomb's Pipeline Builder cannot be used.** This provides a self-hosted telemetry pipeline with full control over data routing and processing.
+
 > **📚 Additional Setup**: Once your S3 archival is configured and working, consider enhancing your telemetry pipeline with Honeycomb's advanced features. See the [Honeycomb Telemetry Pipeline Enhancement Guide](https://docs.honeycomb.io/send-data/telemetry-pipeline/enhance/).
 
 ## Table of Contents
@@ -28,6 +30,7 @@ This is a **production-ready, dual-export** setup that demonstrates enterprise t
 - ✅ **Real telemetry generation** - Traces, metrics, logs using OpenTelemetry
 - ✅ **Environment-based config** - Secure API key management
 - ✅ **Simple management** - Easy start/stop/logs commands
+- ✅ **Self-hosted pipeline** - No Kubernetes required, alternative to Honeycomb Pipeline Builder
 
 ## Architecture
 

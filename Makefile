@@ -112,10 +112,6 @@ test:
 	@echo "🧪 Testing telemetry..."
 	@echo "Check your Honeycomb and S3 for data in ~30 seconds"
 
-## Show collector metrics
-metrics:
-	@echo "📊 Recent Collector Metrics:"
-	@curl -s http://localhost:8888/metrics 2>/dev/null | grep -E "otelcol_(receiver|exporter).*total" | tail -10
 
 ## Check environment
 check-env:

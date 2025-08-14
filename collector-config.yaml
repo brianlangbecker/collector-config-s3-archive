@@ -23,6 +23,15 @@ receivers:
   fluentforward:
     endpoint: 0.0.0.0:8006
 
+  # Prometheus receiver for scraping collector metrics
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          scrape_interval: 30s
+          static_configs:
+            - targets: ['localhost:8888']
+
   otlp/main:
     protocols:
       grpc:
@@ -156,6 +165,23 @@ exporters:
     tls:
       insecure: false
 
+  # Collector operational metrics exporter
+  otlp/honeycomb_collector_metrics:
+    compression: gzip
+    endpoint: api.honeycomb.io:443
+    headers:
+      x-honeycomb-team: ${HONEYCOMB_API_KEY}
+      x-honeycomb-dataset: "collector-metrics"
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_elapsed_time: 300s
+      max_interval: 30s
+    sending_queue:
+      enabled: true
+    tls:
+      insecure: false
+
   otlp/honeycomb_direct_traces:
     compression: gzip
     endpoint: api.honeycomb.io:443
@@ -178,6 +204,8 @@ service:
       level: debug
       development: true
       encoding: console
+    metrics:
+      level: detailed
   pipelines:
     # S3 archival pipelines
     logs/bulk_storage:
@@ -239,6 +267,7 @@ service:
         - debug
         - otlp/honeycomb_direct_logs
 
+    # Application metrics pipeline
     metrics/honeycomb_direct:
       receivers:
         - otlp/main
@@ -247,6 +276,16 @@ service:
       exporters:
         - debug
         - otlp/honeycomb_direct_metrics
+
+    # Collector operational metrics pipeline
+    metrics/collector_operations:
+      receivers:
+        - prometheus
+      processors:
+        - batch/main
+      exporters:
+        - debug
+        - otlp/honeycomb_collector_metrics
 
     traces/honeycomb_direct:
       receivers:

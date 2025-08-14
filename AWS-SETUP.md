@@ -64,9 +64,8 @@ To manage storage costs for long-term telemetry data:
    - **Rule scope:** Apply to all objects
 7. **Lifecycle rule actions:**
    - **Transition current versions:** After 30 days → Standard-IA
-   - **Transition current versions:** After 90 days → Glacier Flexible Retrieval
-   - **Transition current versions:** After 365 days → Glacier Deep Archive
    - **Delete incomplete multipart uploads:** After 7 days
+   - **Note:** Glacier storage classes are not supported at this time
 
 ### Step 3: Collector Authentication Methods
 
@@ -110,6 +109,112 @@ AWS_SECRET_ACCESS_KEY=your_secret_key_here
 
 ---
 
+## Docker Development with IAM Roles
+
+Use this approach when developing locally with Docker but want to test IAM role-based authentication (similar to production).
+
+### Prerequisites
+
+- AWS CLI configured with a user that can assume roles
+- Docker and Docker Compose installed
+
+### Step 1: Create IAM Role for Testing
+
+1. **Create the role (if not already created):**
+   ```bash
+   aws iam create-role --role-name otel-s3-collector-dev-role --assume-role-policy-document '{
+     "Version": "2012-10-17",
+     "Statement": [{
+       "Effect": "Allow",
+       "Principal": {"AWS": "arn:aws:iam::YOUR-ACCOUNT:user/otel-collector-s3-user"},
+       "Action": "sts:AssumeRole"
+     }]
+   }'
+   ```
+
+2. **Attach S3 policy to role:**
+   ```bash
+   aws iam attach-role-policy \
+     --role-name otel-s3-collector-dev-role \
+     --policy-arn arn:aws:iam::YOUR-ACCOUNT:policy/OTelS3CollectorWriteAccess
+   ```
+
+### Step 2: Give Your User AssumeRole Permission
+
+Add this policy to your existing IAM user (`otel-collector-s3-user`):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::YOUR-ACCOUNT:role/otel-s3-collector-dev-role"
+    }
+  ]
+}
+```
+
+### Step 3: Configure AWS CLI Profile
+
+Edit `~/.aws/config`:
+
+```ini
+[profile otel-s3-dev-role]
+role_arn = arn:aws:iam::YOUR-ACCOUNT:role/otel-s3-collector-dev-role
+source_profile = otel-collector-s3-user
+region = us-east-1
+```
+
+### Step 4: Test Role Access
+
+```bash
+# Test the role assumption
+aws sts get-caller-identity --profile otel-s3-dev-role
+
+# Should show the role ARN, not your user ARN
+```
+
+### Step 5: Configure Environment
+
+```bash
+# Copy IAM role environment template
+cp .env.iam-role-example .env
+
+# Edit with your values (no AWS keys needed)
+nano .env
+```
+
+### Step 6: Run with Role
+
+```bash
+# Set AWS profile and run
+export AWS_PROFILE=otel-s3-dev-role
+docker-compose up -d
+
+# Test S3 access
+./test-s3-access.sh
+```
+
+### Troubleshooting Docker + IAM Roles
+
+**Problem:** Role not being used in container
+
+**Solution:** Make sure AWS profile is exported and accessible:
+```bash
+# Check profile is set
+echo $AWS_PROFILE
+
+# Test role outside container
+aws sts get-caller-identity --profile $AWS_PROFILE
+
+# Pass profile to container (update docker-compose.yml if needed)
+docker-compose config | grep AWS_PROFILE
+```
+
+---
+
 ## Quick Setup (Testing/Demo)
 
 Use this approach for local testing and demos. It uses IAM user access keys.
@@ -118,7 +223,7 @@ Use this approach for local testing and demos. It uses IAM user access keys.
 
 1. **Go to AWS Console → IAM → Users**
 2. **Click "Create user"**
-3. **User name:** `otel-demo-user`
+3. **User name:** `otel-collector-s3-user`
 4. **Click "Next"**
 
 ### Step 2: Create S3 Policy
@@ -360,7 +465,7 @@ echo "test" | aws s3 cp - s3://your-test-bucket-12345/test.txt
 
    ```bash
    aws iam simulate-principal-policy \
-     --policy-source-arn arn:aws:iam::ACCOUNT:user/otel-demo-user \
+     --policy-source-arn arn:aws:iam::ACCOUNT:user/otel-collector-s3-user \
      --action-names s3:PutObject \
      --resource-arns arn:aws:s3:::your-bucket/*
    ```
@@ -506,7 +611,7 @@ aws sts get-caller-identity
 aws s3 ls
 
 # Check IAM user permissions
-aws iam list-attached-user-policies --user-name otel-demo-user
+aws iam list-attached-user-policies --user-name otel-collector-s3-user
 
 # Check IAM role permissions
 aws iam list-attached-role-policies --role-name otel-collector-role

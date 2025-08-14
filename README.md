@@ -2,7 +2,7 @@
 
 A production-ready OpenTelemetry Collector setup that demonstrates dual-export capabilities: real-time monitoring with Honeycomb and long-term archival storage with S3. Successfully tested with live telemetry data from multiple application types.
 
-> **📚 Additional Setup**: Once your S3 archival is configured and working, consider enhancing your telemetry pipeline with Honeycomb's advanced features. See the [Honeycomb Telemetry Pipeline Enhancement Guide](https://docs.honeycomb.io/send-data/telemetry-pipeline/enhance/) for sampling strategies, data transformation, and optimization techniques.
+> **📚 Additional Setup**: Once your S3 archival is configured and working, consider enhancing your telemetry pipeline with Honeycomb's advanced features. See the [Honeycomb Telemetry Pipeline Enhancement Guide](https://docs.honeycomb.io/send-data/telemetry-pipeline/enhance/).
 
 ## Table of Contents
 
@@ -98,21 +98,17 @@ Create an IAM policy with S3 write permissions:
 
 ```json
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "s3:PutObject",
-                "s3:PutObjectAcl",
-                "s3:PutObjectRetention"
-            ],
-            "Resource": [
-                "arn:aws:s3:::your-telemetry-bucket",
-                "arn:aws:s3:::your-telemetry-bucket/*"
-            ]
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:PutObjectAcl", "s3:PutObjectRetention"],
+      "Resource": [
+        "arn:aws:s3:::your-telemetry-bucket",
+        "arn:aws:s3:::your-telemetry-bucket/*"
+      ]
+    }
+  ]
 }
 ```
 
@@ -283,7 +279,8 @@ The configuration defines 8 pipelines across 3 data paths:
 #### Direct Honeycomb Pipelines
 
 - `logs/honeycomb_direct`
-- `metrics/honeycomb_direct` (Required - Refinery doesn't support metrics)
+- `metrics/honeycomb_direct` (Application metrics - Required since Refinery doesn't support metrics)
+- `metrics/collector_operations` (Collector operational metrics)
 - `traces/honeycomb_direct`
 
 ## Data Flows
@@ -323,40 +320,26 @@ your-bucket/
 
 ## Monitoring
 
-### Collector Metrics
+### Collector Operations Dashboard
 
-The collector exposes metrics on `http://localhost:8888/metrics` including:
+For monitoring collector performance and operations, use the **OpenTelemetry Collector Operations** board template in Honeycomb. This provides pre-built visualizations for:
 
-- **Receiver metrics**: `otelcol_receiver_*`
-- **Processor metrics**: `otelcol_processor_*`
-- **Exporter metrics**: `otelcol_exporter_*`
-- **Queue metrics**: `otelcol_exporter_queue_*`
+- Collector throughput and performance metrics
+- Pipeline health and data flow monitoring  
+- Resource utilization and error tracking
 
-### Key Metrics to Monitor
+The collector automatically scrapes its own Prometheus metrics and sends them to the **`collector-metrics`** dataset in Honeycomb via a dedicated `metrics/collector_operations` pipeline.
 
-```bash
-# Successful exports
-otelcol_exporter_sent_spans_total
-otelcol_exporter_sent_logs_total
-otelcol_exporter_sent_metric_points_total
+#### Dataset Organization
 
-# Failed exports
-otelcol_exporter_send_failed_spans_total
-otelcol_exporter_send_failed_logs_total
-otelcol_exporter_send_failed_metric_points_total
-
-# Queue depth
-otelcol_exporter_queue_size
-```
+- **`collector-metrics`**: Collector operational metrics (scraped via Prometheus receiver)
+- **`otel-metrics`**: Application metrics (sent via OTLP from applications)
 
 ### Health Checks
 
 ```bash
 # Basic health check
-curl -f http://localhost:8888/metrics > /dev/null
-
-# Pipeline-specific health
-curl http://localhost:8888/metrics | grep otelcol_exporter_sent
+curl -f http://localhost:8889/
 
 # Docker stack health check
 make status
@@ -382,7 +365,6 @@ make logs           # View all logs
 make logs-collector # View collector logs only
 make logs-apps      # View sample app logs only
 make validate       # Check telemetry flow
-make metrics        # Show collector metrics
 
 # Maintenance
 make build          # Rebuild Docker images
@@ -570,9 +552,6 @@ service:
   telemetry:
     logs:
       level: debug # Enable debug logging
-    metrics:
-      level: detailed # Detailed metrics
-      address: 0.0.0.0:8888
 ```
 
 ### Log Analysis
@@ -610,7 +589,7 @@ receivers:
 
 #### Memory Management
 
-- Monitor collector memory usage with system metrics
+- Monitor collector memory usage
 - Set appropriate container memory limits
 - Consider using multiple collector instances for horizontal scaling
 
@@ -689,7 +668,7 @@ This demo shows the **basics**. For production:
 1. **Use IAM roles** - Remove access keys, use roles attached to compute resources
 2. **Secure your secrets** - Use AWS Secrets Manager, HashiCorp Vault, etc.
 3. **Configure S3 lifecycle** - Set up automatic archival to Glacier for cost savings
-4. **Monitor the collector** - Set up alerts on collector metrics and health
+4. **Monitor the collector** - Set up alerts on collector health
 5. **Scale horizontally** - Run multiple collector instances behind a load balancer
 6. **Add sampling** - Configure Refinery sampling rules for high-volume traces
 

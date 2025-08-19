@@ -32,6 +32,33 @@ This is a **production-ready, dual-export** setup that demonstrates enterprise t
 - ✅ **Simple management** - Easy start/stop/logs commands
 - ✅ **Self-hosted pipeline** - No Kubernetes required, alternative to Honeycomb Pipeline Builder
 
+### S3 Archive Use Cases
+
+The S3 archival capability in this setup serves critical business and technical needs when using Honeycomb:
+
+#### **Compliance and Regulatory Requirements**
+
+- **Data retention policies**: Meet industry-specific requirements (SOX, HIPAA, PCI-DSS) for log retention periods
+- **Audit trails**: Maintain immutable records for security audits and forensic analysis
+- **Legal discovery**: Preserve telemetry data for potential litigation or compliance investigations
+
+#### **Cost-Effective Long-Term Storage**
+
+- **Cold storage economics**: S3's tiered storage (Standard → IA → Glacier → Deep Archive) dramatically reduces costs for older data
+- **Lifecycle policies**: Automatically transition data to cheaper storage classes based on age
+- **Unlimited retention**: Store years of telemetry data without the high costs of real-time analytics platforms
+
+#### **Hot/Cold Data Strategy with Honeycomb**
+
+This configuration implements a smart data tiering strategy:
+
+- **Hot data**: A filtered percentage of logs (currently ERROR-level only) go directly to Honeycomb's hot storage for real-time alerting and analysis
+- **Cold data**: All telemetry data (100% of logs, metrics, traces) is archived to S3 for comprehensive retention
+- **Data enhancement**: The S3 archive can be retrieved later using Honeycomb's data enhance features when deeper missing data or deeper historical analysis is needed in Honeycomb.
+- **Cost optimization**: Only critical data consumes hot storage/events, while complete data remains accessible via cold storage
+
+This dual-export strategy provides the best of both worlds: real-time observability through Honeycomb for immediate operational needs, and comprehensive data archival through S3 for long-term business and compliance requirements.
+
 ## Architecture
 
 ```
@@ -53,20 +80,15 @@ This is a **production-ready, dual-export** setup that demonstrates enterprise t
                     ┌──────────┼──────────┐
                     │          │          │
                     v          v          v
-        ┌─────────────────┐    │    ┌──────────────┐
-        │   S3 Archive    │    │    │  Honeycomb   │
-        │ ✅ VERIFIED     │    │    │   Direct     │
-        │   WORKING       │    │    │✅ VERIFIED   │
-        │                 │    │    │  WORKING     │
-        │ otel/year=YYYY/ │    │    │              │
-        │ month=MM/day=DD/│    │    │ Enhanced:    │
-        │ hour=HH/min=MM/ │    │    │ • Queuing    │
-        │                 │    │    │ • Retries    │
-        │ Enhanced:       │    │    │ • Dataset    │
-        │ • Proto marshal │    │    │   routing    │
-        │ • Queuing       │    │    │ • Auto-named │
-        │ • Batch tuning  │    │    │   services   │
-        └─────────────────┘    │    └──────────────┘
+        ┌─────────────────┐    │    ┌─────────────────┐
+        │   S3 Archive    │    │    │  Honeycomb      │
+        │ ✅ VERIFIED     │    │    │   Direct        │
+        │   WORKING       │    │    │ ✅ VERIFIED     │
+        │                 │    │    │   WORKING       │
+        │ otel/year=YYYY/ │    │    │                 │
+        │ month=MM/day=DD/│    │    │                 │
+        │ hour=HH/min=MM/ │    │    │                 │
+        └─────────────────┘    │    └─────────────────┘
                                │
                                v
                     ┌─────────────────┐
@@ -328,7 +350,7 @@ your-bucket/
 For monitoring collector performance and operations, use the **OpenTelemetry Collector Operations** board template in Honeycomb. This provides pre-built visualizations for:
 
 - Collector throughput and performance metrics
-- Pipeline health and data flow monitoring  
+- Pipeline health and data flow monitoring
 - Resource utilization and error tracking
 
 The collector automatically scrapes its own Prometheus metrics and sends them to the **`collector-metrics`** dataset in Honeycomb via a dedicated `metrics/collector_operations` pipeline.

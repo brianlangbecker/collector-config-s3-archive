@@ -57,6 +57,12 @@ processors:
 
   # Note: removeemptyvalues processor removed - not available in this collector version
 
+  # Filter processor to send only error severity logs to Honeycomb
+  filter/errors_only:
+    logs:
+      log_record:
+        - 'severity_text == "ERROR"'
+
   transform/parse_timestamp:
     error_mode: ignore
     log_statements:
@@ -262,6 +268,7 @@ service:
         - otlp/main
         - fluentforward
       processors:
+        - filter/errors_only
         - batch/main
       exporters:
         - debug

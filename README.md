@@ -38,7 +38,7 @@ The S3 archival capability in this setup serves critical business and technical 
 
 #### **Compliance and Regulatory Requirements**
 
-- **Data retention policies**: Meet industry-specific requirements (SOX, HIPAA, PCI-DSS) for log retention periods
+- **Data retention policies**: Meet various regulatory and organizational requirements for log retention periods
 - **Audit trails**: Maintain immutable records for security audits and forensic analysis
 - **Legal discovery**: Preserve telemetry data for potential litigation or compliance investigations
 

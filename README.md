@@ -36,17 +36,17 @@ This is a **production-ready, dual-export** setup that demonstrates enterprise t
 
 The S3 archival capability in this setup serves critical business and technical needs when using Honeycomb:
 
-#### **Compliance and Regulatory Requirements**
-
-- **Data retention policies**: Meet various regulatory and organizational requirements for log retention periods
-- **Audit trails**: Maintain immutable records for security audits and forensic analysis
-- **Legal discovery**: Preserve telemetry data for potential litigation or compliance investigations
-
 #### **Cost-Effective Long-Term Storage**
 
 - **Cold storage economics**: S3's tiered storage (Standard → IA) reduces costs for older data
 - **Lifecycle policies**: Automatically transition data to cheaper storage classes based on age
 - **Unlimited retention**: Store years of telemetry data without the high costs of real-time analytics platforms
+
+#### **Compliance and Regulatory Requirements**
+
+- **Data retention policies**: Meet various regulatory and organizational requirements for log retention periods
+- **Audit trails**: Maintain immutable records for security audits and forensic analysis
+- **Legal discovery**: Preserve telemetry data for potential litigation or compliance investigations
 
 #### **Hot/Cold Data Strategy with Honeycomb**
 
@@ -107,6 +107,7 @@ This dual-export strategy provides the best of both worlds: real-time observabil
 2. **Honeycomb Direct Path**: `OTLP → Batch Processor → Honeycomb` (✅ **ACTIVE** - all signal types with dedicated datasets for logs/metrics, auto-named services for traces)
 3. **FluentBit Path**: `FluentForward → Log Processors → Both S3 & Honeycomb` (✅ **READY**)
 4. **Refinery Path**: `OTLP → Processors → Refinery → Honeycomb` (💤 **READY** - currently commented out)
+5. **Refinery Integration**: When using Refinery, comment out all direct Honeycomb paths except metrics (Refinery doesn't support metrics)
 
 ## Prerequisites
 
@@ -318,7 +319,7 @@ The configuration defines 8 pipelines across 3 data paths:
 | **Metrics** | ✅ Yes     | ❌ No\*  | ✅ Yes           |
 | **Traces**  | ✅ Yes     | ✅ Yes   | ✅ Yes           |
 
-\*Refinery doesn't support metrics - they must go directly to Honeycomb
+\*Refinery doesn't support metrics - they must go directly to Honeycomb. Also, when using Refinery comment out direct for logs and traces.
 
 ### Processing Steps
 

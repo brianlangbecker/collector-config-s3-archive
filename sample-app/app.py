@@ -167,19 +167,35 @@ class SimpleApp:
                 # Record error metric
                 self.error_counter.add(1, {"operation": operation, "error_type": error_type})
                 
-                # Log error (with console output for visibility)
-                error_msg = f"Request failed: {error_type} for {user}"
-                print(f"❌ {error_msg}")
-                
-                self.logger.error(
-                    error_msg,
-                    extra={
-                        "user_id": user,
-                        "operation": operation,
-                        "error_type": error_type,
-                        "duration": duration
-                    }
-                )
+                # Randomly choose ERROR or FATAL severity
+                if random.random() < 0.3:  # 30% of errors are FATAL
+                    # Log fatal error
+                    error_msg = f"FATAL: {error_type} for {user}"
+                    print(f"💀 {error_msg}")
+                    
+                    self.logger.critical(
+                        error_msg,
+                        extra={
+                            "user_id": user,
+                            "operation": operation,
+                            "error_type": error_type,
+                            "duration": duration
+                        }
+                    )
+                else:
+                    # Log regular error
+                    error_msg = f"Request failed: {error_type} for {user}"
+                    print(f"❌ {error_msg}")
+                    
+                    self.logger.error(
+                        error_msg,
+                        extra={
+                            "user_id": user,
+                            "operation": operation,
+                            "error_type": error_type,
+                            "duration": duration
+                        }
+                    )
                 
                 return {"status": "error", "error_type": error_type}
             

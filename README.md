@@ -44,7 +44,7 @@ The S3 archival capability in this setup serves critical business and technical 
 
 #### **Cost-Effective Long-Term Storage**
 
-- **Cold storage economics**: S3's tiered storage (Standard → IA → Glacier → Deep Archive) dramatically reduces costs for older data
+- **Cold storage economics**: S3's tiered storage (Standard → IA) reduces costs for older data
 - **Lifecycle policies**: Automatically transition data to cheaper storage classes based on age
 - **Unlimited retention**: Store years of telemetry data without the high costs of real-time analytics platforms
 

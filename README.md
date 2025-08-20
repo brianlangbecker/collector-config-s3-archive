@@ -52,7 +52,7 @@ The S3 archival capability in this setup serves critical business and technical 
 
 This configuration implements a smart data tiering strategy:
 
-- **Hot data**: A filtered percentage of logs (currently ERROR-level only) go directly to Honeycomb's hot storage for real-time alerting and analysis
+- **Hot data**: A filtered percentage of logs (currently ERROR-level and above: ERROR, FATAL, CRITICAL) go directly to Honeycomb's hot storage for real-time alerting and analysis
 - **Cold data**: All telemetry data (100% of logs, metrics, traces) is archived to S3 for comprehensive retention
 - **Data enhancement**: The S3 archive can be retrieved later using Honeycomb's data enhance features when deeper missing data or deeper historical analysis is needed in Honeycomb.
 - **Cost optimization**: Only critical data consumes hot storage/events, while complete data remains accessible via cold storage

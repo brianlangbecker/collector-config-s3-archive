@@ -156,8 +156,36 @@ class SimpleApp:
                 }
             )
             
-            # Simulate errors (15% chance)
-            if random.random() < 0.15:
+            # Simulate errors and fatal errors
+            error_roll = random.random()
+            if error_roll < 0.05:  # 5% chance for FATAL errors
+                error_type = random.choice(["database_corruption", "memory_exhausted", "security_breach"])
+                
+                # Mark span as error
+                span.set_status(trace.Status(trace.StatusCode.ERROR, f"FATAL: {error_type} occurred"))
+                span.set_attribute("error.type", error_type)
+                span.set_attribute("error.severity", "fatal")
+                
+                # Record error metric
+                self.error_counter.add(1, {"operation": operation, "error_type": error_type, "severity": "fatal"})
+                
+                # Log fatal error
+                error_msg = f"FATAL: {error_type} for {user}"
+                print(f"💀 {error_msg}")
+                
+                self.logger.critical(
+                    error_msg,
+                    extra={
+                        "user_id": user,
+                        "operation": operation,
+                        "error_type": error_type,
+                        "duration": duration,
+                        "severity": "fatal"
+                    }
+                )
+                
+                return {"status": "fatal", "error_type": error_type}
+            elif error_roll < 0.20:  # 15% chance for regular errors (20% - 5% = 15%)
                 error_type = random.choice(["timeout", "validation_error", "network_error"])
                 
                 # Mark span as error
@@ -167,35 +195,19 @@ class SimpleApp:
                 # Record error metric
                 self.error_counter.add(1, {"operation": operation, "error_type": error_type})
                 
-                # Randomly choose ERROR or FATAL severity
-                if random.random() < 0.3:  # 30% of errors are FATAL
-                    # Log fatal error
-                    error_msg = f"FATAL: {error_type} for {user}"
-                    print(f"💀 {error_msg}")
-                    
-                    self.logger.critical(
-                        error_msg,
-                        extra={
-                            "user_id": user,
-                            "operation": operation,
-                            "error_type": error_type,
-                            "duration": duration
-                        }
-                    )
-                else:
-                    # Log regular error
-                    error_msg = f"Request failed: {error_type} for {user}"
-                    print(f"❌ {error_msg}")
-                    
-                    self.logger.error(
-                        error_msg,
-                        extra={
-                            "user_id": user,
-                            "operation": operation,
-                            "error_type": error_type,
-                            "duration": duration
-                        }
-                    )
+                # Log regular error
+                error_msg = f"Request failed: {error_type} for {user}"
+                print(f"❌ {error_msg}")
+                
+                self.logger.error(
+                    error_msg,
+                    extra={
+                        "user_id": user,
+                        "operation": operation,
+                        "error_type": error_type,
+                        "duration": duration
+                    }
+                )
                 
                 return {"status": "error", "error_type": error_type}
             

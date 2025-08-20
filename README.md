@@ -410,7 +410,7 @@ The Python sample app generates realistic telemetry:
 - **📊 Traces**: User requests (`handle_login`, `handle_search`, etc.) with attributes
 - **📈 Metrics**: Request counters, duration histograms, error counts, active users
 - **📝 Logs**: Structured logs with user context and request details
-- **❌ Errors**: 15% error rate with different error types
+- **❌ Errors**: 15% ERROR rate and 5% FATAL/CRITICAL rate with different error types
 - **⏰ Background tasks**: Periodic cleanup/sync/backup jobs
 
 All using pure **OpenTelemetry SDK** - no external dependencies for metrics or logging!
